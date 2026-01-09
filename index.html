@@ -1,1 +1,1674 @@
+<!doctype html>
+<html lang="pt-BR" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SAECAL - Sistema de Avaliação</title>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="w-full h-full overflow-auto bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+   <div class="min-h-full"><!-- Header -->
+    <header class="bg-white shadow-md border-b-4 border-indigo-600">
+     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <h1 id="titulo-sistema" class="text-3xl font-bold text-indigo-900">SAECAL - Sistema de Avaliação</h1>
+      <p id="nome-secretaria" class="text-gray-600 mt-1">Secretaria Municipal de Educação</p>
+     </div>
+    </header><!-- Navigation -->
+    <nav class="bg-white shadow-sm">
+     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex space-x-8"><button onclick="showTab('importar')" class="nav-btn px-3 py-4 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-indigo-500 hover:text-indigo-600" data-tab="importar"> 📊 Importar Alunos </button> <button onclick="showTab('aplicadores')" class="nav-btn px-3 py-4 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-indigo-500 hover:text-indigo-600" data-tab="aplicadores"> 👥 Aplicadores </button> <button onclick="showTab('provas')" class="nav-btn px-3 py-4 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-indigo-500 hover:text-indigo-600" data-tab="provas"> 📝 Gerar Provas </button> <button onclick="showTab('correcao')" class="nav-btn px-3 py-4 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-indigo-500 hover:text-indigo-600" data-tab="correcao"> ✏️ Corrigir Provas </button> <button onclick="showTab('avaliacoes')" class="nav-btn px-3 py-4 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-indigo-500 hover:text-indigo-600" data-tab="avaliacoes"> ✓ Confirmar Avaliações </button> <button onclick="showTab('resultados')" class="nav-btn px-3 py-4 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-indigo-500 hover:text-indigo-600" data-tab="resultados"> 📈 Resultados </button>
+      </div>
+     </div>
+    </nav><!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><!-- Tab: Importar Alunos -->
+     <div id="tab-importar" class="tab-content">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+       <h2 class="text-2xl font-bold text-gray-900 mb-4">📊 Importar Alunos</h2>
+       <p class="text-gray-600 mb-6">Faça o upload de uma planilha Excel (.xlsx) com os dados dos alunos</p>
+       <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors"><input type="file" id="fileInput" accept=".xlsx" class="hidden" onchange="handleFileUpload(event)"> <label for="fileInput" class="cursor-pointer">
+         <div class="text-6xl mb-4">
+          📁
+         </div><p class="text-lg font-medium text-gray-700 mb-2">Clique para selecionar arquivo</p><p class="text-sm text-gray-500">Formato: .xlsx (Excel)</p></label>
+       </div>
+       <div class="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4">
+        <h3 class="font-semibold text-blue-900 mb-2">📋 Formato esperado da planilha:</h3>
+        <ul class="text-sm text-blue-800 space-y-1">
+         <li>• <strong>Nome:</strong> Nome completo do aluno</li>
+         <li>• <strong>Escola:</strong> Nome da escola</li>
+         <li>• <strong>Turma:</strong> Código da turma (ex: 5A, 7B)</li>
+         <li>• <strong>Ano:</strong> Ano escolar (1 a 9)</li>
+        </ul>
+       </div>
+       <div id="import-status" class="mt-4"></div>
+      </div>
+     </div><!-- Tab: Aplicadores -->
+     <div id="tab-aplicadores" class="tab-content hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+       <h2 class="text-2xl font-bold text-gray-900 mb-4">👥 Alocar Aplicadores</h2>
+       <p class="text-gray-600 mb-6">Defina o aplicador responsável por cada turma</p>
+       <div id="turmas-list" class="space-y-4"></div>
+      </div>
+     </div><!-- Tab: Gerar Provas -->
+     <div id="tab-provas" class="tab-content hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+       <h2 class="text-2xl font-bold text-gray-900 mb-2">📝 Gerar Provas SAECAL</h2>
+       <p class="text-sm text-gray-600 mb-6"><strong>SAECAL:</strong> Sistema de Avaliação Educacional de Cocal dos Alves</p>
+       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"><!-- Painel Esquerdo: Configurações Básicas -->
+        <div class="bg-white rounded-lg border-2 border-gray-200 p-6">
+         <h3 class="text-lg font-semibold text-gray-900 mb-4">⚙️ Configurações Básicas</h3>
+         <div class="space-y-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-2">Ano Escolar</label> <select id="prova-ano" onchange="atualizarHabilidades()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"> <option value="1">1º Ano</option> <option value="2">2º Ano</option> <option value="3">3º Ano</option> <option value="4">4º Ano</option> <option value="5">5º Ano</option> <option value="6">6º Ano</option> <option value="7">7º Ano</option> <option value="8">8º Ano</option> <option value="9">9º Ano</option> </select>
+          </div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-2">Disciplina</label> <select id="prova-disciplina" onchange="atualizarHabilidades()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"> <option value="portugues">Português</option> <option value="matematica">Matemática</option> </select>
+          </div>
+         </div>
+        </div><!-- Painel Direito: Chat de Habilidades -->
+        <div class="bg-white rounded-lg border-2 border-indigo-300 p-6">
+         <h3 class="text-lg font-semibold text-gray-900 mb-4">💬 Gerador de Prova por Habilidades</h3>
+         <div id="chat-habilidades" class="bg-gray-50 rounded-lg h-64 overflow-y-auto mb-4 p-4 space-y-3 border border-gray-200">
+          <div class="bg-indigo-100 rounded-lg p-3 text-sm text-indigo-900">
+           <p class="font-semibold">👋 Olá! Como posso ajudar?</p>
+           <p class="text-xs mt-1">Descreva a habilidade que deseja avaliar e quantas questões sobre ela.</p>
+           <p class="text-xs mt-1 text-indigo-700">Exemplo: "5 questões sobre interpretação de texto" ou "8 questões de multiplicação"</p>
+          </div>
+         </div>
+         <div class="flex gap-2"><input type="text" id="input-habilidade" placeholder="Digite a habilidade e quantidade..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" onkeypress="if(event.key==='Enter') adicionarHabilidade()"> <button onclick="adicionarHabilidade()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors"> ➕ </button>
+         </div>
+        </div>
+       </div><!-- Lista de Habilidades Selecionadas -->
+       <div id="habilidades-selecionadas" class="mb-6"></div><!-- Botões de Ação -->
+       <div class="flex gap-4 mb-6"><button onclick="gerarProva()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition-colors"> 📝 Gerar Prova </button> <button onclick="gerarGabarito()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition-colors"> ✓ Gerar Gabarito </button>
+       </div>
+       <div id="prova-preview"></div>
+      </div>
+     </div><!-- Tab: Corrigir Provas -->
+     <div id="tab-correcao" class="tab-content hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+       <h2 class="text-2xl font-bold text-gray-900 mb-4">✏️ Corrigir Provas</h2>
+       <p class="text-gray-600 mb-6">Selecione um aluno e marque as respostas da prova</p>
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div><label class="block text-sm font-medium text-gray-700 mb-2">Selecione o Aluno</label> <select id="correcao-aluno" onchange="loadAlunoCorrecao()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"> <option value="">Selecione um aluno...</option> </select>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-2">Disciplina</label> <select id="correcao-disciplina" onchange="loadAlunoCorrecao()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"> <option value="portugues">Português</option> <option value="matematica">Matemática</option> </select>
+        </div>
+       </div>
+       <div id="correcao-area"></div>
+      </div>
+     </div><!-- Tab: Avaliações -->
+     <div id="tab-avaliacoes" class="tab-content hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+       <h2 class="text-2xl font-bold text-gray-900 mb-4">✓ Confirmar Avaliações</h2>
+       <p class="text-gray-600 mb-6">Registre as notas e confirme as avaliações dos alunos</p>
+       <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-2">Filtrar por Escola</label> <select id="filter-escola" onchange="filterAlunos()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"> <option value="">Todas as escolas</option> </select>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-2">Filtrar por Turma</label> <select id="filter-turma" onchange="filterAlunos()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"> <option value="">Todas as turmas</option> </select>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-2">Filtrar por Status</label> <select id="filter-status" onchange="filterAlunos()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"> <option value="">Todos</option> <option value="pendente">Pendentes</option> <option value="avaliado">Avaliados</option> </select>
+        </div>
+       </div>
+       <div id="alunos-list" class="space-y-3"></div>
+      </div>
+     </div><!-- Tab: Resultados -->
+     <div id="tab-resultados" class="tab-content hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+       <div class="flex justify-between items-center mb-6">
+        <div>
+         <h2 class="text-2xl font-bold text-gray-900">📈 Resultados e Relatórios</h2>
+         <p class="text-gray-600 mt-1">Visualize o desempenho por escola, turma e aluno</p>
+        </div><button onclick="gerarPDF()" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition-colors flex items-center"> <span class="mr-2">📄</span> Baixar PDF </button>
+       </div>
+       <div id="resultados-content"><!-- Estatísticas Gerais -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+         <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
+          <div class="text-3xl mb-2">
+           👨‍🎓
+          </div>
+          <div class="text-2xl font-bold" id="stat-total">
+           0
+          </div>
+          <div class="text-sm opacity-90">
+           Total de Alunos
+          </div>
+         </div>
+         <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
+          <div class="text-3xl mb-2">
+           ✓
+          </div>
+          <div class="text-2xl font-bold" id="stat-avaliados">
+           0
+          </div>
+          <div class="text-sm opacity-90">
+           Avaliados
+          </div>
+         </div>
+         <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
+          <div class="text-3xl mb-2">
+           📚
+          </div>
+          <div class="text-2xl font-bold" id="stat-media-port">
+           -
+          </div>
+          <div class="text-sm opacity-90">
+           Média Português
+          </div>
+         </div>
+         <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white shadow-lg">
+          <div class="text-3xl mb-2">
+           🔢
+          </div>
+          <div class="text-2xl font-bold" id="stat-media-mat">
+           -
+          </div>
+          <div class="text-sm opacity-90">
+           Média Matemática
+          </div>
+         </div>
+        </div><!-- Gráficos -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+         <div class="bg-gray-50 rounded-lg p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Distribuição de Níveis - Português</h3>
+          <canvas id="chart-portugues"></canvas>
+         </div>
+         <div class="bg-gray-50 rounded-lg p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Distribuição de Níveis - Matemática</h3>
+          <canvas id="chart-matematica"></canvas>
+         </div>
+        </div><!-- Desempenho por Escola -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-8">
+         <h3 class="text-lg font-semibold text-gray-900 mb-4">Desempenho por Escola</h3>
+         <div id="escolas-resultados"></div>
+        </div><!-- Tabela Detalhada -->
+        <div class="bg-gray-50 rounded-lg p-6">
+         <h3 class="text-lg font-semibold text-gray-900 mb-4">Resultados Detalhados</h3>
+         <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+           <thead class="bg-gray-100">
+            <tr>
+             <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Aluno</th>
+             <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Escola</th>
+             <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Turma</th>
+             <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Português</th>
+             <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Matemática</th>
+             <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Status</th>
+            </tr>
+           </thead>
+           <tbody id="tabela-resultados" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </main>
+   </div>
+  </div>
+  <script>
+    let allData = [];
+    let chartPortugues = null;
+    let chartMatematica = null;
+    let habilidadesSelecionadas = [];
 
+    // Mapeamento de habilidades por série e disciplina
+    const habilidadesPorSerie = {
+      portugues: {
+        1: {
+          "Identificação de letras": { assunto: "Gramática", maxQuestoes: 5 },
+          "Sons das letras": { assunto: "Interpretação de Texto", maxQuestoes: 4 },
+          "Palavras simples": { assunto: "Ortografia", maxQuestoes: 4 }
+        },
+        2: {
+          "Sílabas e palavras": { assunto: "Gramática", maxQuestoes: 5 },
+          "Compreensão de frases": { assunto: "Interpretação de Texto", maxQuestoes: 5 },
+          "Escrita de palavras": { assunto: "Ortografia", maxQuestoes: 4 }
+        },
+        3: {
+          "Separação de sílabas": { assunto: "Gramática", maxQuestoes: 5 },
+          "Compreensão de texto simples": { assunto: "Interpretação de Texto", maxQuestoes: 5 },
+          "Acentuação básica": { assunto: "Ortografia", maxQuestoes: 4 },
+          "Produção de frases": { assunto: "Produção Textual", maxQuestoes: 4 }
+        },
+        4: {
+          "Classificação de palavras": { assunto: "Gramática", maxQuestoes: 5 },
+          "Interpretação de texto narrativo": { assunto: "Interpretação de Texto", maxQuestoes: 6 },
+          "Regras de acentuação": { assunto: "Ortografia", maxQuestoes: 4 },
+          "Escrita de pequenos textos": { assunto: "Produção Textual", maxQuestoes: 5 }
+        },
+        5: {
+          "Verbo e tempos verbais": { assunto: "Gramática", maxQuestoes: 6 },
+          "Análise de narrativas": { assunto: "Interpretação de Texto", maxQuestoes: 6 },
+          "Pontuação": { assunto: "Ortografia", maxQuestoes: 5 },
+          "Estrutura de parágrafos": { assunto: "Produção Textual", maxQuestoes: 5 },
+          "Contos e fábulas": { assunto: "Literatura", maxQuestoes: 4 }
+        },
+        6: {
+          "Concordância nominal e verbal": { assunto: "Gramática", maxQuestoes: 6 },
+          "Análise de poesias": { assunto: "Interpretação de Texto", maxQuestoes: 5 },
+          "Crase e regências": { assunto: "Ortografia", maxQuestoes: 5 },
+          "Argumentação em textos": { assunto: "Produção Textual", maxQuestoes: 5 },
+          "Gêneros literários": { assunto: "Literatura", maxQuestoes: 5 }
+        },
+        7: {
+          "Sintaxe e funções sintáticas": { assunto: "Gramática", maxQuestoes: 7 },
+          "Análise de figuras de linguagem": { assunto: "Interpretação de Texto", maxQuestoes: 6 },
+          "Regência verbal": { assunto: "Ortografia", maxQuestoes: 5 },
+          "Redação argumentativa": { assunto: "Produção Textual", maxQuestoes: 6 },
+          "Literatura brasileira": { assunto: "Literatura", maxQuestoes: 5 }
+        },
+        8: {
+          "Análise sintática completa": { assunto: "Gramática", maxQuestoes: 7 },
+          "Interpretação de textos complexos": { assunto: "Interpretação de Texto", maxQuestoes: 6 },
+          "Ortografia avançada": { assunto: "Ortografia", maxQuestoes: 5 },
+          "Dissertação e persuasão": { assunto: "Produção Textual", maxQuestoes: 6 },
+          "Autores clássicos": { assunto: "Literatura", maxQuestoes: 5 }
+        },
+        9: {
+          "Análise de períodos complexos": { assunto: "Gramática", maxQuestoes: 7 },
+          "Interpretação crítica": { assunto: "Interpretação de Texto", maxQuestoes: 7 },
+          "Norma culta": { assunto: "Ortografia", maxQuestoes: 5 },
+          "Redação para ENEM": { assunto: "Produção Textual", maxQuestoes: 7 },
+          "Movimentos literários": { assunto: "Literatura", maxQuestoes: 6 }
+        }
+      },
+      matematica: {
+        1: {
+          "Números de 0 a 10": { assunto: "Operações Básicas", maxQuestoes: 5 },
+          "Adição simples": { assunto: "Operações Básicas", maxQuestoes: 5 },
+          "Formas geométricas": { assunto: "Geometria", maxQuestoes: 4 }
+        },
+        2: {
+          "Adição e subtração": { assunto: "Operações Básicas", maxQuestoes: 6 },
+          "Dezenas e unidades": { assunto: "Operações Básicas", maxQuestoes: 4 },
+          "Comparação de tamanhos": { assunto: "Geometria", maxQuestoes: 4 },
+          "Medidas de comprimento": { assunto: "Medidas", maxQuestoes: 4 }
+        },
+        3: {
+          "Multiplicação básica": { assunto: "Operações Básicas", maxQuestoes: 6 },
+          "Divisão simples": { assunto: "Operações Básicas", maxQuestoes: 4 },
+          "Perímetro de formas": { assunto: "Geometria", maxQuestoes: 4 },
+          "Metade e dobro": { assunto: "Frações e Decimais", maxQuestoes: 4 }
+        },
+        4: {
+          "Multiplicação de números maiores": { assunto: "Operações Básicas", maxQuestoes: 6 },
+          "Divisão com resto": { assunto: "Operações Básicas", maxQuestoes: 5 },
+          "Frações básicas (1/2, 1/4)": { assunto: "Frações e Decimais", maxQuestoes: 5 },
+          "Área de retângulos": { assunto: "Geometria", maxQuestoes: 4 },
+          "Unidades de comprimento": { assunto: "Medidas", maxQuestoes: 4 }
+        },
+        5: {
+          "Operações com números decimais": { assunto: "Operações Básicas", maxQuestoes: 6 },
+          "Frações equivalentes": { assunto: "Frações e Decimais", maxQuestoes: 5 },
+          "Volume e capacidade": { assunto: "Geometria", maxQuestoes: 5 },
+          "Conversão de unidades": { assunto: "Medidas", maxQuestoes: 5 },
+          "Resolução de problemas": { assunto: "Problemas Matemáticos", maxQuestoes: 5 }
+        },
+        6: {
+          "Números positivos e negativos": { assunto: "Operações Básicas", maxQuestoes: 6 },
+          "Porcentagem": { assunto: "Frações e Decimais", maxQuestoes: 6 },
+          "Polígonos e seus ângulos": { assunto: "Geometria", maxQuestoes: 5 },
+          "Sistema métrico": { assunto: "Medidas", maxQuestoes: 4 },
+          "Problemas com proporções": { assunto: "Problemas Matemáticos", maxQuestoes: 5 }
+        },
+        7: {
+          "Operações com números racionais": { assunto: "Operações Básicas", maxQuestoes: 6 },
+          "Expressões numéricas": { assunto: "Operações Básicas", maxQuestoes: 5 },
+          "Geometria espacial básica": { assunto: "Geometria", maxQuestoes: 6 },
+          "Proporcionalidade": { assunto: "Frações e Decimais", maxQuestoes: 5 },
+          "Problemas complexos": { assunto: "Problemas Matemáticos", maxQuestoes: 6 }
+        },
+        8: {
+          "Álgebra linear": { assunto: "Operações Básicas", maxQuestoes: 7 },
+          "Equações de primeiro grau": { assunto: "Operações Básicas", maxQuestoes: 6 },
+          "Teorema de Pitágoras": { assunto: "Geometria", maxQuestoes: 5 },
+          "Radiciação": { assunto: "Frações e Decimais", maxQuestoes: 5 },
+          "Problemas de taxa e proporção": { assunto: "Problemas Matemáticos", maxQuestoes: 6 }
+        },
+        9: {
+          "Equações quadráticas": { assunto: "Operações Básicas", maxQuestoes: 7 },
+          "Potenciação": { assunto: "Operações Básicas", maxQuestoes: 6 },
+          "Geometria avançada": { assunto: "Geometria", maxQuestoes: 6 },
+          "Progressões": { assunto: "Frações e Decimais", maxQuestoes: 5 },
+          "Problemas para ENEM": { assunto: "Problemas Matemáticos", maxQuestoes: 7 }
+        }
+      }
+    };
+
+    // Banco de questões SAEB com assuntos (anterior)
+    // Gerador de questões visuais dinâmicas
+    function gerarQuestaoVisual(tipo, ano) {
+      const tipos = {
+        formas: {
+          titulo: "Identifique as formas",
+          renderizar: () => {
+            const cores = ["#FF6B6B", "#4ECDC4", "#FFE66D", "#95E1D3"];
+            let svg = '<svg width="100%" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">';
+            
+            // Quadrado
+            svg += `<rect x="30" y="40" width="60" height="60" fill="${cores[0]}" stroke="#333" stroke-width="2"/>`;
+            svg += `<text x="60" y="115" text-anchor="middle" font-size="14" font-weight="bold">Quadrado</text>`;
+            
+            // Círculo
+            svg += `<circle cx="160" cy="70" r="30" fill="${cores[1]}" stroke="#333" stroke-width="2"/>`;
+            svg += `<text x="160" y="115" text-anchor="middle" font-size="14" font-weight="bold">Círculo</text>`;
+            
+            // Triângulo
+            svg += `<polygon points="280,40 320,100 240,100" fill="${cores[2]}" stroke="#333" stroke-width="2"/>`;
+            svg += `<text x="280" y="115" text-anchor="middle" font-size="14" font-weight="bold">Triângulo</text>`;
+            
+            // Estrela
+            const starPath = "M350,50 L360,75 L387,75 L365,90 L375,115 L350,100 L325,115 L335,90 L313,75 L340,75 Z";
+            svg += `<path d="${starPath}" fill="${cores[3]}" stroke="#333" stroke-width="2"/>`;
+            svg += `<text x="350" y="130" text-anchor="middle" font-size="14" font-weight="bold">Estrela</text>`;
+            
+            svg += '</svg>';
+            return svg;
+          },
+          questoes: {
+            1: { pergunta: "Qual forma tem 4 lados iguais?", respostas: ["Quadrado", "Círculo", "Triângulo", "Estrela"], correta: 0 },
+            2: { pergunta: "Qual forma é redonda?", respostas: ["Quadrado", "Círculo", "Triângulo", "Estrela"], correta: 1 },
+            3: { pergunta: "Qual forma tem 3 lados?", respostas: ["Quadrado", "Círculo", "Triângulo", "Estrela"], correta: 2 },
+            4: { pergunta: "Qual forma tem 5 pontas?", respostas: ["Quadrado", "Círculo", "Triângulo", "Estrela"], correta: 3 }
+          }
+        },
+        cores: {
+          titulo: "Identifique as cores",
+          renderizar: () => {
+            let svg = '<svg width="100%" height="180" viewBox="0 0 500 180" xmlns="http://www.w3.org/2000/svg">';
+            
+            const cores = [
+              { cor: "#FF0000", nome: "Vermelho", x: 40 },
+              { cor: "#0000FF", nome: "Azul", x: 140 },
+              { cor: "#00AA00", nome: "Verde", x: 240 },
+              { cor: "#FFFF00", nome: "Amarelo", x: 340 },
+              { cor: "#FF8800", nome: "Laranja", x: 440 }
+            ];
+            
+            cores.forEach(c => {
+              svg += `<circle cx="${c.x}" cy="60" r="35" fill="${c.cor}" stroke="#333" stroke-width="2"/>`;
+              svg += `<text x="${c.x}" y="130" text-anchor="middle" font-size="13" font-weight="bold">${c.nome}</text>`;
+            });
+            
+            svg += '</svg>';
+            return svg;
+          },
+          questoes: {
+            1: { pergunta: "Onde está a cor vermelha?", respostas: ["1ª", "2ª", "3ª", "4ª"], correta: 0 },
+            2: { pergunta: "Qual é a cor azul?", respostas: ["1ª", "2ª", "3ª", "4ª"], correta: 1 },
+            3: { pergunta: "Onde está a cor verde?", respostas: ["1ª", "2ª", "3ª", "4ª"], correta: 2 },
+            4: { pergunta: "Qual é a cor amarela?", respostas: ["1ª", "2ª", "3ª", "4ª"], correta: 3 }
+          }
+        },
+        contagem: {
+          titulo: "Conte os objetos",
+          renderizar: () => {
+            let svg = '<svg width="100%" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">';
+            
+            // 5 círculos
+            for (let i = 0; i < 5; i++) {
+              svg += `<circle cx="${50 + i*30}" cy="60" r="12" fill="#FF6B6B" stroke="#333" stroke-width="1"/>`;
+            }
+            svg += `<text x="50" y="110" font-size="14" font-weight="bold">5 círculos</text>`;
+            
+            // 7 quadrados
+            for (let i = 0; i < 7; i++) {
+              svg += `<rect x="${200 + (i%4)*20}" y="${50 + Math.floor(i/4)*20}" width="15" height="15" fill="#4ECDC4" stroke="#333" stroke-width="1"/>`;
+            }
+            svg += `<text x="215" y="110" font-size="14" font-weight="bold">7 quadrados</text>`;
+            
+            // 3 triângulos
+            for (let i = 0; i < 3; i++) {
+              svg += `<polygon points="${320 + i*25},70 ${330 + i*25},55 ${340 + i*25},70" fill="#FFE66D" stroke="#333" stroke-width="1"/>`;
+            }
+            svg += `<text x="320" y="110" font-size="14" font-weight="bold">3 triângulos</text>`;
+            
+            svg += '</svg>';
+            return svg;
+          },
+          questoes: {
+            1: { pergunta: "Quantos círculos vermelhos há?", respostas: ["3", "5", "7", "9"], correta: 1 },
+            2: { pergunta: "Quantos quadrados azuis há?", respostas: ["5", "6", "7", "8"], correta: 2 },
+            3: { pergunta: "Quantos triângulos amarelos há?", respostas: ["2", "3", "4", "5"], correta: 1 },
+            4: { pergunta: "Qual tem mais: círculos ou quadrados?", respostas: ["Círculos", "Quadrados", "Tem igual", "Nenhum"], correta: 1 }
+          }
+        },
+        sequencia: {
+          titulo: "Complete a sequência",
+          renderizar: () => {
+            let svg = '<svg width="100%" height="100" viewBox="0 0 500 100" xmlns="http://www.w3.org/2000/svg">';
+            
+            const cores = ["#FF6B6B", "#4ECDC4", "#FFE66D", "#95E1D3", "#F38181"];
+            const sequence = [0, 1, 2, 0, 1, 2, 0, 1, 2];
+            
+            sequence.forEach((idx, pos) => {
+              svg += `<circle cx="${50 + pos*50}" cy="50" r="20" fill="${cores[idx]}" stroke="#333" stroke-width="2"/>`;
+              svg += `<text x="${50 + pos*50}" y="55" text-anchor="middle" font-size="24" font-weight="bold">●</text>`;
+            });
+            
+            svg += '</svg>';
+            return svg;
+          },
+          questoes: {
+            1: { pergunta: "Qual cor vem depois na sequência?", respostas: ["Vermelha", "Azul", "Amarela", "Verde"], correta: 0 },
+            2: { pergunta: "Qual é o padrão da sequência?", respostas: ["Cores diferentes", "Mesma ordem", "Aleatório", "Aumenta"], correta: 1 }
+          }
+        }
+      };
+      
+      return tipos[tipo];
+    }
+
+    const bancodeQuestoes = {
+      portugues: {
+        "Interpretação de Texto": [
+          { 
+            questao: "Leia o texto:\n\n'Maria acordou cedo, olhou pela janela e viu que o dia estava lindo. O sol brilhava forte e os pássaros cantavam alegremente. Ela pensou: \"Que dia perfeito para ir ao parque!\"'\n\nComo estava o dia quando Maria acordou?", 
+            alternativas: ["A) Chuvoso e frio", "B) Ensolarado e bonito", "C) Nublado e ventoso", "D) Escuro e triste"], 
+            gabarito: "B",
+            visual: null
+          },
+          { 
+            questao: "Observe a imagem e responda: O que você vê mais?", 
+            alternativas: ["A) Triângulos", "B) Círculos", "C) Quadrados", "D) Estrelas"], 
+            gabarito: "C",
+            visual: { tipo: "formas", pergunta: "Qual forma tem mais figuras?" }
+          },
+          { 
+            questao: "De acordo com as cores mostradas, qual é a terceira cor?", 
+            alternativas: ["A) Vermelha", "B) Azul", "C) Verde", "D) Amarela"], 
+            gabarito: "C",
+            visual: { tipo: "cores", pergunta: "Qual é a terceira cor na sequência?" }
+          },
+          { 
+            questao: "Contando os objetos na imagem, quantos itens há no total?", 
+            alternativas: ["A) 10", "B) 12", "C) 15", "D) 18"], 
+            gabarito: "C",
+            visual: { tipo: "contagem", pergunta: "Qual é o total de objetos?" }
+          },
+          { 
+            questao: "Qual forma completa corretamente a sequência?", 
+            alternativas: ["A) Vermelha", "B) Azul", "C) Amarela", "D) Verde"], 
+            gabarito: "A",
+            visual: { tipo: "sequencia", pergunta: "Qual vem depois?" }
+          }
+        ],
+        "Gramática": [
+          { questao: "Identifique o substantivo na frase:\n\n'O cachorro late muito à noite.'\n\nQual palavra é o substantivo?", alternativas: ["A) O", "B) late", "C) cachorro", "D) muito"], gabarito: "C" },
+          { questao: "Complete a frase com o verbo correto:\n\n'Maria _____ para a escola todos os dias.'\n\nQual alternativa completa corretamente?", alternativas: ["A) vou", "B) vai", "C) vamos", "D) foram"], gabarito: "B" },
+          { questao: "Qual frase está pontuada corretamente?", alternativas: ["A) Bom dia Maria", "B) Bom dia, Maria.", "C) Bom dia Maria.", "D) Bom, dia Maria"], gabarito: "B" },
+          { questao: "Identifique o adjetivo na frase:\n\n'O céu está azul e bonito.'\n\nQuais palavras são adjetivos?", alternativas: ["A) céu e está", "B) O e está", "C) azul e bonito", "D) céu e bonito"], gabarito: "C" },
+          { questao: "Complete com o pronome adequado:\n\n'_____ livros são meus, mas aqueles são seus.'\n\nQual pronome completa corretamente?", alternativas: ["A) Este", "B) Estes", "C) Esse", "D) Aquele"], gabarito: "B" }
+        ],
+        "Ortografia": [
+          { questao: "Qual palavra está escrita corretamente?", alternativas: ["A) Caza", "B) Casa", "C) Cassa", "D) Kasa"], gabarito: "B" },
+          { questao: "Identifique a palavra com acento correto:", alternativas: ["A) Cafe", "B) Café", "C) Cafê", "D) Cáfe"], gabarito: "B" },
+          { questao: "Qual palavra está escrita corretamente?", alternativas: ["A) Âncora", "B) Ancora", "C) Ãncora", "D) Ancóra"], gabarito: "A" },
+          { questao: "Complete com a forma correta:\n\n'A _____ estava cheia de flores.'\n\nQual está correta?", alternativas: ["A) jarra", "B) jara", "C) járra", "D) jára"], gabarito: "A" },
+          { questao: "Qual palavra está escrita corretamente?", alternativas: ["A) Excesão", "B) Exceção", "C) Excessão", "D) Esceção"], gabarito: "B" }
+        ],
+        "Produção Textual": [
+          { questao: "Para escrever um bom parágrafo, é importante:", alternativas: ["A) Usar apenas uma palavra", "B) Não usar pontuação", "C) Ter uma ideia principal", "D) Escrever sem ordem"], gabarito: "C" },
+          { questao: "Em um texto narrativo, é essencial ter:", alternativas: ["A) Apenas descrições", "B) Personagens e enredo", "C) Só diálogos", "D) Apenas final"], gabarito: "B" },
+          { questao: "Qual elemento NÃO faz parte de uma carta?", alternativas: ["A) Data", "B) Saudação", "C) Rima", "D) Despedida"], gabarito: "C" },
+          { questao: "Para dar coesão ao texto, usamos:", alternativas: ["A) Apenas pontos finais", "B) Conectivos como 'mas', 'porque', 'então'", "C) Somente vírgulas", "D) Nenhuma pontuação"], gabarito: "B" },
+          { questao: "O que caracteriza um texto descritivo?", alternativas: ["A) Apresentar características de algo ou alguém", "B) Contar apenas ações", "C) Dar ordens", "D) Fazer perguntas"], gabarito: "A" }
+        ],
+        "Literatura": [
+          { questao: "Em uma fábula, geralmente encontramos:", alternativas: ["A) Apenas pessoas reais", "B) Animais com características humanas", "C) Só descrições de lugares", "D) Textos sem moral"], gabarito: "B" },
+          { questao: "Qual é a característica principal de um poema?", alternativas: ["A) Ser escrito em prosa", "B) Ter versos e ritmo", "C) Ser muito longo", "D) Não ter estrofes"], gabarito: "B" },
+          { questao: "O que é uma lenda?", alternativas: ["A) História inventada sem moral", "B) Narrativa que mistura fatos reais e imaginários", "C) Texto que só dá informações", "D) Poema sem rimas"], gabarito: "B" },
+          { questao: "Em um conto de fadas, é comum encontrar:", alternativas: ["A) Apenas fatos reais", "B) Elementos mágicos e fantásticos", "C) Somente diálogos", "D) Textos científicos"], gabarito: "B" },
+          { questao: "Qual é o objetivo de uma história em quadrinhos?", alternativas: ["A) Ensinar matemática", "B) Contar histórias usando imagens e textos", "C) Dar notícias", "D) Fazer propaganda"], gabarito: "B" }
+        ]
+      },
+      matematica: {
+        "Operações Básicas": [
+          { questao: "João tinha 25 figurinhas. Ganhou mais 18 figurinhas do seu amigo e depois comprou 12 figurinhas na banca. Quantas figurinhas João tem agora?", alternativas: ["A) 45 figurinhas", "B) 50 figurinhas", "C) 55 figurinhas", "D) 60 figurinhas"], gabarito: "C" },
+          { questao: "Uma escola tem 8 salas com 32 alunos em cada sala. Quantos alunos há na escola?", alternativas: ["A) 246 alunos", "B) 256 alunos", "C) 264 alunos", "D) 272 alunos"], gabarito: "B" },
+          { questao: "Maria comprou 3 pacotes de biscoito com 24 biscoitos em cada um. Se ela já comeu 15 biscoitos, quantos ainda restam?", alternativas: ["A) 52 biscoitos", "B) 57 biscoitos", "C) 62 biscoitos", "D) 67 biscoitos"], gabarito: "B" },
+          { questao: "Um ônibus transporta 45 passageiros. Se 28 passageiros desceram no ponto e 17 novos passageiros entraram, quantos passageiros estão no ônibus agora?", alternativas: ["A) 32 passageiros", "B) 34 passageiros", "C) 36 passageiros", "D) 38 passageiros"], gabarito: "B" },
+          { questao: "Pedro tinha R$ 120,00. Gastou R$ 45,00 em uma camisa e R$ 28,00 em um livro. Quanto dinheiro Pedro ainda tem?", alternativas: ["A) R$ 45,00", "B) R$ 47,00", "C) R$ 49,00", "D) R$ 51,00"], gabarito: "B" }
+        ],
+        "Geometria": [
+          { questao: "Um quadrado tem todos os lados medindo 8 cm. Qual é o perímetro deste quadrado?", alternativas: ["A) 24 cm", "B) 28 cm", "C) 32 cm", "D) 36 cm"], gabarito: "C" },
+          { questao: "Um retângulo tem 12 cm de comprimento e 7 cm de largura. Qual é a área deste retângulo?", alternativas: ["A) 78 cm²", "B) 84 cm²", "C) 90 cm²", "D) 94 cm²"], gabarito: "B" },
+          { questao: "Observe as formas:\n\n• Forma A: 4 lados iguais e 4 ângulos retos\n• Forma B: 3 lados\n• Forma C: Linha curva fechada\n\nQual é o nome da Forma A?", alternativas: ["A) Triângulo", "B) Quadrado", "C) Círculo", "D) Retângulo"], gabarito: "B" },
+          { questao: "Um jardim retangular tem 15 metros de comprimento e 9 metros de largura. Quantos metros de cerca são necessários para cercar completamente este jardim?", alternativas: ["A) 42 metros", "B) 45 metros", "C) 48 metros", "D) 51 metros"], gabarito: "C" },
+          { questao: "Um triângulo tem base de 10 cm e altura de 6 cm. Qual é a área deste triângulo?\n\n(Área do triângulo = base × altura ÷ 2)", alternativas: ["A) 25 cm²", "B) 30 cm²", "C) 35 cm²", "D) 40 cm²"], gabarito: "B" }
+        ],
+        "Frações e Decimais": [
+          { questao: "Uma pizza foi dividida em 8 fatias iguais. Pedro comeu 3 fatias. Que fração da pizza Pedro comeu?", alternativas: ["A) 3/5", "B) 3/8", "C) 5/8", "D) 3/4"], gabarito: "B" },
+          { questao: "Em uma sala com 40 alunos, 3/4 dos alunos trouxeram lanche. Quantos alunos trouxeram lanche?", alternativas: ["A) 25 alunos", "B) 28 alunos", "C) 30 alunos", "D) 32 alunos"], gabarito: "C" },
+          { questao: "Um produto custa R$ 80,00. Se aplicarmos um desconto de 25%, quanto o produto passará a custar?", alternativas: ["A) R$ 55,00", "B) R$ 60,00", "C) R$ 65,00", "D) R$ 70,00"], gabarito: "B" },
+          { questao: "Maria percorreu 2/5 de uma trilha de 15 km. Quantos quilômetros ela já caminhou?", alternativas: ["A) 5 km", "B) 6 km", "C) 7 km", "D) 8 km"], gabarito: "B" },
+          { questao: "Calcule: 0,5 + 1,25 + 0,75", alternativas: ["A) 2,0", "B) 2,25", "C) 2,5", "D) 2,75"], gabarito: "C" }
+        ],
+        "Medidas": [
+          { questao: "Um corredor percorreu 2 km e 500 metros. Quantos metros ele percorreu no total?", alternativas: ["A) 2500 metros", "B) 2050 metros", "C) 250 metros", "D) 25 metros"], gabarito: "A" },
+          { questao: "Uma receita pede 2 litros de leite. Se você tem uma jarra com 750 ml, quantas jarras serão necessárias para completar a receita?", alternativas: ["A) 2 jarras", "B) 3 jarras", "C) 4 jarras", "D) 5 jarras"], gabarito: "B" },
+          { questao: "Um filme começa às 14h30 e tem duração de 2 horas e 15 minutos. A que horas o filme termina?", alternativas: ["A) 16h30", "B) 16h45", "C) 17h00", "D) 17h15"], gabarito: "B" },
+          { questao: "Uma caixa pesa 2,5 kg. Quantos gramas são?", alternativas: ["A) 250 g", "B) 2500 g", "C) 25 g", "D) 25000 g"], gabarito: "B" },
+          { questao: "Uma piscina tem capacidade para 15.000 litros. Se já foram colocados 12.500 litros, quantos litros ainda faltam?", alternativas: ["A) 1500 litros", "B) 2000 litros", "C) 2500 litros", "D) 3000 litros"], gabarito: "C" }
+        ],
+        "Problemas Matemáticos": [
+          { questao: "Uma loja vendeu 145 camisetas na segunda-feira, 198 na terça-feira e 167 na quarta-feira. Quantas camisetas foram vendidas nesses três dias?", alternativas: ["A) 490 camisetas", "B) 500 camisetas", "C) 510 camisetas", "D) 520 camisetas"], gabarito: "C" },
+          { questao: "Um estacionamento tem 12 fileiras com 8 vagas cada. Se 75 vagas estão ocupadas, quantas vagas estão livres?", alternativas: ["A) 19 vagas", "B) 21 vagas", "C) 23 vagas", "D) 25 vagas"], gabarito: "B" },
+          { questao: "Ana quer comprar 5 cadernos que custam R$ 12,00 cada e 3 canetas que custam R$ 4,00 cada. Quanto ela gastará no total?", alternativas: ["A) R$ 68,00", "B) R$ 72,00", "C) R$ 76,00", "D) R$ 80,00"], gabarito: "B" },
+          { questao: "Em uma escola há 420 alunos. Se 3/7 são meninos, quantas meninas há na escola?", alternativas: ["A) 180 meninas", "B) 200 meninas", "C) 220 meninas", "D) 240 meninas"], gabarito: "D" },
+          { questao: "Um táxi cobra R$ 5,00 de bandeirada mais R$ 3,00 por quilômetro rodado. Quanto custará uma corrida de 8 km?", alternativas: ["A) R$ 27,00", "B) R$ 29,00", "C) R$ 31,00", "D) R$ 33,00"], gabarito: "B" }
+        ]
+      }
+    };
+
+    const assuntosDisponiveis = {
+      portugues: ["Interpretação de Texto", "Gramática", "Ortografia", "Produção Textual", "Literatura"],
+      matematica: ["Operações Básicas", "Geometria", "Frações e Decimais", "Medidas", "Problemas Matemáticos"]
+    };
+
+    const defaultConfig = {
+      titulo_sistema: "SAECAL - SISTEMA DE AVALIAÇÃO EDUCACIONAL DE COCAL DOS ALVES",
+      nome_secretaria: "Secretaria Municipal de Educação de Cocal dos Alves",
+      background_color: "#EEF2FF",
+      surface_color: "#FFFFFF",
+      text_color: "#1F2937",
+      primary_action_color: "#4F46E5",
+      secondary_action_color: "#6366F1",
+      font_family: "Inter",
+      font_size: 16
+    };
+
+    const dataHandler = {
+      onDataChanged(data) {
+        allData = data;
+        updateAllViews();
+      }
+    };
+
+    async function init() {
+      if (window.dataSdk) {
+        const result = await window.dataSdk.init(dataHandler);
+        if (!result.isOk) {
+          console.error("Falha ao inicializar SDK de dados");
+        }
+      }
+
+      if (window.elementSdk) {
+        await window.elementSdk.init({
+          defaultConfig,
+          onConfigChange: async (config) => {
+            const tituloEl = document.getElementById('titulo-sistema');
+            const nomeEl = document.getElementById('nome-secretaria');
+            const appEl = document.getElementById('app');
+            
+            if (tituloEl) tituloEl.textContent = config.titulo_sistema || defaultConfig.titulo_sistema;
+            if (nomeEl) nomeEl.textContent = config.nome_secretaria || defaultConfig.nome_secretaria;
+            
+            const customFont = config.font_family || defaultConfig.font_family;
+            const baseFontSize = config.font_size || defaultConfig.font_size;
+            const baseFontStack = 'system-ui, -apple-system, sans-serif';
+            
+            document.body.style.fontFamily = `${customFont}, ${baseFontStack}`;
+            document.body.style.fontSize = `${baseFontSize}px`;
+            
+            if (appEl) {
+              appEl.style.background = `linear-gradient(to bottom right, ${config.background_color || defaultConfig.background_color}, ${config.surface_color || defaultConfig.surface_color})`;
+            }
+            
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => {
+              if (btn.classList.contains('bg-indigo-600')) {
+                btn.style.backgroundColor = config.primary_action_color || defaultConfig.primary_action_color;
+              }
+            });
+          },
+          mapToCapabilities: (config) => ({
+            recolorables: [
+              { 
+                get: () => config.background_color || defaultConfig.background_color,
+                set: (value) => {
+                  if (window.elementSdk) {
+                    window.elementSdk.config.background_color = value;
+                    window.elementSdk.setConfig({ background_color: value });
+                  }
+                }
+              },
+              {
+                get: () => config.surface_color || defaultConfig.surface_color,
+                set: (value) => {
+                  if (window.elementSdk) {
+                    window.elementSdk.config.surface_color = value;
+                    window.elementSdk.setConfig({ surface_color: value });
+                  }
+                }
+              },
+              {
+                get: () => config.text_color || defaultConfig.text_color,
+                set: (value) => {
+                  if (window.elementSdk) {
+                    window.elementSdk.config.text_color = value;
+                    window.elementSdk.setConfig({ text_color: value });
+                  }
+                }
+              },
+              {
+                get: () => config.primary_action_color || defaultConfig.primary_action_color,
+                set: (value) => {
+                  if (window.elementSdk) {
+                    window.elementSdk.config.primary_action_color = value;
+                    window.elementSdk.setConfig({ primary_action_color: value });
+                  }
+                }
+              },
+              {
+                get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+                set: (value) => {
+                  if (window.elementSdk) {
+                    window.elementSdk.config.secondary_action_color = value;
+                    window.elementSdk.setConfig({ secondary_action_color: value });
+                  }
+                }
+              }
+            ],
+            borderables: [],
+            fontEditable: {
+              get: () => config.font_family || defaultConfig.font_family,
+              set: (value) => {
+                if (window.elementSdk) {
+                  window.elementSdk.config.font_family = value;
+                  window.elementSdk.setConfig({ font_family: value });
+                }
+              }
+            },
+            fontSizeable: {
+              get: () => config.font_size || defaultConfig.font_size,
+              set: (value) => {
+                if (window.elementSdk) {
+                  window.elementSdk.config.font_size = value;
+                  window.elementSdk.setConfig({ font_size: value });
+                }
+              }
+            }
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ["titulo_sistema", config.titulo_sistema || defaultConfig.titulo_sistema],
+            ["nome_secretaria", config.nome_secretaria || defaultConfig.nome_secretaria]
+          ])
+        });
+      }
+
+      showTab('importar');
+      atualizarAssuntos();
+    }
+
+    function atualizarHabilidades() {
+      const ano = document.getElementById('prova-ano').value;
+      const disciplina = document.getElementById('prova-disciplina').value;
+      const inputEl = document.getElementById('input-habilidade');
+      
+      if (!inputEl) return;
+      inputEl.placeholder = `Descreva a habilidade desejada para ${ano}º ano de ${disciplina === 'portugues' ? 'Português' : 'Matemática'}...`;
+    }
+
+    function adicionarHabilidade() {
+      const ano = document.getElementById('prova-ano').value;
+      const disciplina = document.getElementById('prova-disciplina').value;
+      const input = document.getElementById('input-habilidade');
+      const texto = input.value.trim();
+      
+      if (!texto) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+        msgDiv.textContent = 'Digite a habilidade desejada!';
+        document.body.appendChild(msgDiv);
+        setTimeout(() => msgDiv.remove(), 3000);
+        return;
+      }
+
+      // Extrair número de questões do texto
+      const match = texto.match(/(\d+)\s*(?:questões?|perguntas?)/i);
+      const quantidade = match ? parseInt(match[1]) : 5;
+      
+      // Extrair texto da habilidade
+      const habilidadeTexto = texto.replace(/(\d+)\s*(?:questões?|perguntas?)/i, '').trim();
+      
+      // Encontrar habilidade correspondente
+      const habilidades = habilidadesPorSerie[disciplina][ano];
+      let habilidadeEncontrada = null;
+      
+      for (const [nome, dados] of Object.entries(habilidades)) {
+        if (nome.toLowerCase().includes(habilidadeTexto.toLowerCase()) || 
+            habilidadeTexto.toLowerCase().includes(nome.toLowerCase())) {
+          habilidadeEncontrada = { nome, ...dados, quantidade: Math.min(quantidade, dados.maxQuestoes) };
+          break;
+        }
+      }
+
+      if (!habilidadeEncontrada) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'fixed top-4 right-4 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+        msgDiv.textContent = `Habilidade não encontrada para ${ano}º ano. Tente: "${Object.keys(habilidades)[0]}"`;
+        document.body.appendChild(msgDiv);
+        setTimeout(() => msgDiv.remove(), 4000);
+        return;
+      }
+
+      // Adicionar à lista
+      const id = `${habilidadeEncontrada.nome}-${Date.now()}`;
+      habilidadesSelecionadas.push({ 
+        id, 
+        nome: habilidadeEncontrada.nome, 
+        assunto: habilidadeEncontrada.assunto, 
+        quantidade: habilidadeEncontrada.quantidade 
+      });
+
+      // Adicionar mensagem no chat
+      const chatEl = document.getElementById('chat-habilidades');
+      const userMsg = document.createElement('div');
+      userMsg.className = 'bg-blue-100 rounded-lg p-3 text-sm text-blue-900 ml-auto max-w-xs';
+      userMsg.innerHTML = `<p class="font-semibold">${texto}</p>`;
+      chatEl.appendChild(userMsg);
+
+      const botMsg = document.createElement('div');
+      botMsg.className = 'bg-indigo-100 rounded-lg p-3 text-sm text-indigo-900';
+      botMsg.innerHTML = `<p class="font-semibold">✓ ${habilidadeEncontrada.quantidade} questões de "${habilidadeEncontrada.nome}"</p><p class="text-xs mt-1">Assunto: ${habilidadeEncontrada.assunto}</p>`;
+      chatEl.appendChild(botMsg);
+
+      chatEl.scrollTop = chatEl.scrollHeight;
+      input.value = '';
+      renderHabilidadesSelecionadas();
+    }
+
+    function renderHabilidadesSelecionadas() {
+      const container = document.getElementById('habilidades-selecionadas');
+      
+      if (habilidadesSelecionadas.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const totalQuestoes = habilidadesSelecionadas.reduce((sum, h) => sum + h.quantidade, 0);
+      
+      const html = `
+        <div class="bg-blue-50 rounded-lg border-2 border-blue-300 p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-blue-900">📚 Habilidades Selecionadas</h3>
+            <button onclick="limparHabilidades()" class="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">Limpar</button>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            ${habilidadesSelecionadas.map(h => `
+              <div class="bg-white rounded-lg border-l-4 border-indigo-600 p-3 flex justify-between items-start">
+                <div>
+                  <p class="font-semibold text-gray-900">${h.nome}</p>
+                  <p class="text-sm text-gray-600">${h.quantidade} questões • ${h.assunto}</p>
+                </div>
+                <button 
+                  onclick="removerHabilidade('${h.id}')"
+                  class="text-red-500 hover:text-red-700 font-bold text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="bg-indigo-100 rounded p-3 text-center">
+            <p class="text-indigo-900 font-semibold">Total: <span class="text-2xl text-indigo-700">${totalQuestoes}</span> questões</p>
+          </div>
+        </div>
+      `;
+      
+      container.innerHTML = html;
+    }
+
+    function removerHabilidade(id) {
+      habilidadesSelecionadas = habilidadesSelecionadas.filter(h => h.id !== id);
+      renderHabilidadesSelecionadas();
+    }
+
+    function limparHabilidades() {
+      habilidadesSelecionadas = [];
+      document.getElementById('input-habilidade').value = '';
+      renderHabilidadesSelecionadas();
+      const chatEl = document.getElementById('chat-habilidades');
+      chatEl.innerHTML = `<div class="bg-indigo-100 rounded-lg p-3 text-sm text-indigo-900">
+        <p class="font-semibold">👋 Olá! Como posso ajudar?</p>
+        <p class="text-xs mt-1">Descreva a habilidade que deseja avaliar e quantas questões sobre ela.</p>
+      </div>`;
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('border-indigo-600', 'text-indigo-600');
+        btn.classList.add('border-transparent', 'text-gray-700');
+      });
+      
+      const selectedTab = document.getElementById(`tab-${tabName}`);
+      if (selectedTab) selectedTab.classList.remove('hidden');
+      
+      const selectedBtn = document.querySelector(`[data-tab="${tabName}"]`);
+      if (selectedBtn) {
+        selectedBtn.classList.add('border-indigo-600', 'text-indigo-600');
+        selectedBtn.classList.remove('border-transparent', 'text-gray-700');
+      }
+      
+      if (tabName === 'aplicadores') renderAplicadores();
+      if (tabName === 'avaliacoes') renderAvaliacoes();
+      if (tabName === 'resultados') renderResultados();
+      if (tabName === 'provas') { renderProvasTab(); atualizarAssuntos(); }
+      if (tabName === 'correcao') renderCorrecaoTab();
+    }
+
+    function renderProvasTab() {
+      // Apenas garante que os selects estejam prontos
+    }
+
+    function renderCorrecaoTab() {
+      const alunos = allData.filter(d => d.tipo === 'aluno');
+      const select = document.getElementById('correcao-aluno');
+      select.innerHTML = '<option value="">Selecione um aluno...</option>' +
+        alunos.map(a => `<option value="${a.id}">${a.nome} - ${a.escola} - ${a.turma}</option>`).join('');
+    }
+
+    function gerarProva() {
+      if (habilidadesSelecionadas.length === 0) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+        msgDiv.textContent = 'Adicione pelo menos uma habilidade!';
+        document.body.appendChild(msgDiv);
+        setTimeout(() => msgDiv.remove(), 3000);
+        return;
+      }
+
+      const ano = document.getElementById('prova-ano').value;
+      const disciplina = document.getElementById('prova-disciplina').value;
+      
+      // Coletar questões dos assuntos das habilidades selecionadas
+      let todasQuestoes = [];
+      habilidadesSelecionadas.forEach(habilidade => {
+        const assunto = habilidade.assunto;
+        const questoesAssunto = bancodeQuestoes[disciplina][assunto] || [];
+        
+        // Embaralhar questões disponíveis
+        const embaralhadas = questoesAssunto.sort(() => Math.random() - 0.5);
+        // Pegar a quantidade especificada
+        const questoesHabilidade = embaralhadas.slice(0, habilidade.quantidade);
+        
+        todasQuestoes = todasQuestoes.concat(questoesHabilidade);
+      });
+
+      const disciplinaNome = disciplina === 'portugues' ? 'Português' : 'Matemática';
+      const habilidadesTexto = habilidadesSelecionadas.map(h => h.nome).join(', ');
+      
+      let html = `
+        <div id="prova-impressao" class="bg-white rounded-lg p-8 shadow-lg">
+          <div class="text-center border-b-2 border-gray-800 pb-4 mb-6">
+            <h2 class="text-2xl font-bold">AVALIAÇÃO SAECAL</h2>
+            <p class="text-sm text-gray-600 mt-1">(Sistema de Avaliação Educacional de Cocal dos Alves)</p>
+            <p class="text-lg mt-3">${disciplinaNome} - ${ano}º Ano</p>
+            <p class="text-sm text-gray-700 mt-2 font-semibold"><strong>Habilidades Avaliadas:</strong> ${habilidadesTexto}</p>
+            <p class="text-sm text-gray-600">Total de questões: ${todasQuestoes.length}</p>
+            <div class="mt-4 grid grid-cols-2 gap-4 text-left">
+              <div>
+                <p><strong>Nome:</strong> _________________________________________________</p>
+                <p class="mt-2"><strong>Escola:</strong> _________________________________________________</p>
+              </div>
+              <div>
+                <p><strong>Turma:</strong> _________________________________________________</p>
+                <p class="mt-2"><strong>Data:</strong> ______ / ______ / ______</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="space-y-8">
+            ${todasQuestoes.map((q, i) => {
+              let htmlQuestao = `
+                <div class="border-l-4 border-indigo-600 pl-4 py-2 page-break">
+                  <p class="font-semibold text-gray-900 mb-3 whitespace-pre-line"><strong>${i + 1}.</strong> ${q.questao}</p>
+              `;
+              
+              // Adicionar visual se houver
+              if (q.visual) {
+                const visual = gerarQuestaoVisual(q.visual.tipo, ano);
+                htmlQuestao += `<div class="bg-gray-50 rounded-lg p-4 mb-4 border-2 border-gray-200">
+                  ${visual.renderizar()}
+                </div>`;
+              }
+              
+              htmlQuestao += `
+                <div class="space-y-2 ml-6">
+                  ${q.alternativas.map(alt => `
+                    <div class="flex items-center">
+                      <span class="inline-block w-4 h-4 border-2 border-gray-400 rounded mr-3"></span>
+                      <span>${alt}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+              `;
+              
+              return htmlQuestao;
+            }).join('')}
+          </div>
+          
+          <div class="mt-8 border-t-2 border-gray-300 pt-4 text-center text-sm text-gray-600 page-break">
+            <p>Boa sorte! Leia cada questão com atenção antes de responder.</p>
+          </div>
+        </div>
+      `;
+      
+      // Adicionar CSS para quebra de página na impressão
+      const style = document.createElement('style');
+      style.textContent = `
+        @media print {
+          .page-break { page-break-inside: avoid; }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      document.getElementById('prova-preview').innerHTML = html + `
+        <div class="mt-4 flex gap-4">
+          <button onclick="imprimirProva()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg">
+            🖨️ Imprimir / Baixar PDF
+          </button>
+        </div>
+      `;
+    }
+
+    function gerarGabarito() {
+      if (habilidadesSelecionadas.length === 0) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+        msgDiv.textContent = 'Adicione pelo menos uma habilidade!';
+        document.body.appendChild(msgDiv);
+        setTimeout(() => msgDiv.remove(), 3000);
+        return;
+      }
+
+      const ano = document.getElementById('prova-ano').value;
+      const disciplina = document.getElementById('prova-disciplina').value;
+      
+      // Coletar questões dos assuntos das habilidades selecionadas
+      let todasQuestoes = [];
+      habilidadesSelecionadas.forEach(habilidade => {
+        const assunto = habilidade.assunto;
+        const questoesAssunto = bancodeQuestoes[disciplina][assunto] || [];
+        
+        // Embaralhar questões disponíveis
+        const embaralhadas = questoesAssunto.sort(() => Math.random() - 0.5);
+        // Pegar a quantidade especificada
+        const questoesHabilidade = embaralhadas.slice(0, habilidade.quantidade);
+        
+        todasQuestoes = todasQuestoes.concat(questoesHabilidade);
+      });
+      
+      const disciplinaNome = disciplina === 'portugues' ? 'Português' : 'Matemática';
+      const habilidadesTexto = habilidadesSelecionadas.map(h => h.nome).join(', ');
+      
+      let html = `
+        <div id="prova-impressao" class="bg-white rounded-lg p-8 shadow-lg">
+          <div class="text-center border-b-2 border-green-600 pb-4 mb-6">
+            <h2 class="text-2xl font-bold text-green-800">GABARITO OFICIAL</h2>
+            <p class="text-sm text-gray-600 mt-1">SAECAL - Sistema de Avaliação Educacional de Cocal dos Alves</p>
+            <p class="text-lg mt-3">${disciplinaNome} - ${ano}º Ano</p>
+            <p class="text-sm text-gray-700 mt-2 font-semibold"><strong>Habilidades:</strong> ${habilidadesTexto}</p>
+            <p class="text-sm text-gray-600">Total de questões: ${todasQuestoes.length}</p>
+          </div>
+          
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            ${todasQuestoes.map((q, i) => `
+              <div class="bg-green-50 border-2 border-green-600 rounded-lg p-4 text-center">
+                <p class="text-sm text-gray-600 mb-1">Questão ${i + 1}</p>
+                <p class="text-3xl font-bold text-green-700">${q.gabarito}</p>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="mt-8 border-t-2 border-gray-300 pt-6">
+            <h3 class="text-lg font-bold mb-4">Respostas Detalhadas:</h3>
+            <div class="space-y-3">
+              ${todasQuestoes.map((q, i) => `
+                <div class="flex items-start">
+                  <span class="font-bold text-green-700 mr-3">${i + 1}. ${q.gabarito}</span>
+                  <span class="text-gray-700">${q.alternativas.find(a => a.startsWith(q.gabarito))}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('prova-preview').innerHTML = html + `
+        <div class="mt-4 flex gap-4">
+          <button onclick="imprimirProva()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg">
+            🖨️ Imprimir Gabarito / Baixar PDF
+          </button>
+        </div>
+      `;
+    }
+
+    async function imprimirProva() {
+      const elemento = document.getElementById('prova-impressao');
+      if (!elemento) return;
+      
+      const canvas = await html2canvas(elemento, {
+        scale: 2,
+        logging: false,
+        useCORS: true
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save('prova-saecal.pdf');
+    }
+
+    function loadAlunoCorrecao() {
+      const alunoId = document.getElementById('correcao-aluno').value;
+      const disciplina = document.getElementById('correcao-disciplina').value;
+      
+      if (!alunoId) {
+        document.getElementById('correcao-area').innerHTML = '';
+        return;
+      }
+      
+      const aluno = allData.find(a => a.id === alunoId);
+      if (!aluno) return;
+      
+      // Coletar todas questões disponíveis dos assuntos
+      let todasQuestoes = [];
+      const assuntos = assuntosDisponiveis[disciplina];
+      assuntos.forEach(assunto => {
+        const questoes = bancodeQuestoes[disciplina][assunto] || [];
+        todasQuestoes = todasQuestoes.concat(questoes);
+      });
+      
+      const questoes = todasQuestoes.slice(0, 22);
+      const disciplinaNome = disciplina === 'portugues' ? 'Português' : 'Matemática';
+      const respostasAtuais = disciplina === 'portugues' ? aluno.respostasPortugues : aluno.respostasMatematica;
+      const respostasArray = respostasAtuais ? respostasAtuais.split('') : Array(22).fill('');
+      
+      let html = `
+        <div class="bg-white rounded-lg border-2 border-gray-200 p-6">
+          <div class="mb-6 bg-indigo-50 rounded-lg p-4">
+            <h3 class="text-lg font-bold text-indigo-900">Aluno: ${aluno.nome}</h3>
+            <p class="text-sm text-gray-700">Escola: ${aluno.escola} | Turma: ${aluno.turma} | Ano: ${aluno.ano}º</p>
+            <p class="text-sm text-indigo-700 font-semibold mt-2">Disciplina: ${disciplinaNome}</p>
+          </div>
+          
+          <div class="space-y-4 mb-6">
+            ${questoes.map((q, i) => `
+              <div class="border rounded-lg p-4 ${respostasArray[i] === q.gabarito ? 'bg-green-50 border-green-300' : respostasArray[i] ? 'bg-red-50 border-red-300' : 'bg-gray-50'}">
+                <div class="flex items-start justify-between mb-2">
+                  <p class="font-semibold text-gray-900 flex-1 whitespace-pre-line"><strong>${i + 1}.</strong> ${q.questao}</p>
+                  <span class="ml-4 px-3 py-1 rounded-full text-xs font-bold ${respostasArray[i] === q.gabarito ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-700'}">
+                    Gabarito: ${q.gabarito}
+                  </span>
+                </div>
+                <div class="flex gap-2 mt-3">
+                  ${['A', 'B', 'C', 'D'].map(letra => `
+                    <button 
+                      onclick="marcarResposta('${alunoId}', '${disciplina}', ${i}, '${letra}')"
+                      class="flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
+                        respostasArray[i] === letra 
+                          ? letra === q.gabarito 
+                            ? 'bg-green-600 text-white' 
+                            : 'bg-red-600 text-white'
+                          : letra === q.gabarito
+                            ? 'bg-green-100 text-green-800 border-2 border-green-400'
+                            : 'bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-100'
+                      }"
+                    >
+                      ${letra}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="border-t-2 pt-4 flex justify-between items-center">
+            <div id="resultado-correcao-${alunoId}-${disciplina}" class="text-lg font-semibold"></div>
+            <button 
+              onclick="finalizarCorrecao('${alunoId}', '${disciplina}')"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3 rounded-lg transition-colors"
+            >
+              ✓ Finalizar Correção
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('correcao-area').innerHTML = html;
+      calcularResultadoCorrecao(alunoId, disciplina);
+    }
+
+    async function marcarResposta(alunoId, disciplina, indice, resposta) {
+      const aluno = allData.find(a => a.id === alunoId);
+      if (!aluno) return;
+      
+      const campo = disciplina === 'portugues' ? 'respostasPortugues' : 'respostasMatematica';
+      let respostas = aluno[campo] || '                      '; // 22 espaços
+      const respostasArray = respostas.split('');
+      respostasArray[indice] = resposta;
+      
+      const updated = { ...aluno };
+      updated[campo] = respostasArray.join('');
+      
+      await window.dataSdk.update(updated);
+      loadAlunoCorrecao();
+    }
+
+    function calcularResultadoCorrecao(alunoId, disciplina) {
+      const aluno = allData.find(a => a.id === alunoId);
+      if (!aluno) return;
+      
+      // Coletar todas questões disponíveis
+      let todasQuestoes = [];
+      const assuntos = assuntosDisponiveis[disciplina];
+      assuntos.forEach(assunto => {
+        const questoes = bancodeQuestoes[disciplina][assunto] || [];
+        todasQuestoes = todasQuestoes.concat(questoes);
+      });
+      
+      const questoes = todasQuestoes.slice(0, 22);
+      const respostasAtuais = disciplina === 'portugues' ? aluno.respostasPortugues : aluno.respostasMatematica;
+      
+      if (!respostasAtuais) return;
+      
+      let acertos = 0;
+      const respostasArray = respostasAtuais.split('');
+      questoes.forEach((q, i) => {
+        if (respostasArray[i] === q.gabarito) acertos++;
+      });
+      
+      const nota = (acertos / questoes.length) * 10;
+      const resultadoEl = document.getElementById(`resultado-correcao-${alunoId}-${disciplina}`);
+      if (resultadoEl) {
+        resultadoEl.innerHTML = `
+          <span class="text-gray-700">Acertos: <span class="text-indigo-700 font-bold">${acertos}/${questoes.length}</span></span>
+          <span class="ml-4 text-gray-700">Nota: <span class="text-indigo-700 font-bold">${nota.toFixed(1)}</span></span>
+        `;
+      }
+    }
+
+    async function finalizarCorrecao(alunoId, disciplina) {
+      const aluno = allData.find(a => a.id === alunoId);
+      if (!aluno) return;
+      
+      // Coletar todas questões disponíveis
+      let todasQuestoes = [];
+      const assuntos = assuntosDisponiveis[disciplina];
+      assuntos.forEach(assunto => {
+        const questoes = bancodeQuestoes[disciplina][assunto] || [];
+        todasQuestoes = todasQuestoes.concat(questoes);
+      });
+      
+      const questoes = todasQuestoes.slice(0, 22);
+      const respostasAtuais = disciplina === 'portugues' ? aluno.respostasPortugues : aluno.respostasMatematica;
+      
+      if (!respostasAtuais) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+        msgDiv.textContent = 'Marque as respostas antes de finalizar!';
+        document.body.appendChild(msgDiv);
+        setTimeout(() => msgDiv.remove(), 3000);
+        return;
+      }
+      
+      let acertos = 0;
+      const respostasArray = respostasAtuais.split('');
+      questoes.forEach((q, i) => {
+        if (respostasArray[i] === q.gabarito) acertos++;
+      });
+      
+      const nota = (acertos / questoes.length) * 10;
+      const updated = { ...aluno };
+      
+      if (disciplina === 'portugues') {
+        updated.notaPortugues = nota;
+        updated.acertosPortugues = acertos;
+      } else {
+        updated.notaMatematica = nota;
+        updated.acertosMatematica = acertos;
+      }
+      
+      await window.dataSdk.update(updated);
+      
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      msgDiv.textContent = `Correção finalizada! Nota: ${nota.toFixed(1)}`;
+      document.body.appendChild(msgDiv);
+      setTimeout(() => msgDiv.remove(), 3000);
+    }
+
+    async function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const statusEl = document.getElementById('import-status');
+      statusEl.innerHTML = '<div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">Processando arquivo...</div>';
+
+      try {
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(firstSheet);
+
+        let importados = 0;
+        for (const row of rows) {
+          if (allData.length >= 999) {
+            statusEl.innerHTML = '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">Limite máximo de 999 alunos atingido!</div>';
+            return;
+          }
+
+          const aluno = {
+            tipo: 'aluno',
+            nome: row.Nome || row.nome || '',
+            escola: row.Escola || row.escola || '',
+            turma: row.Turma || row.turma || '',
+            ano: String(row.Ano || row.ano || ''),
+            aplicador: '',
+            notaPortugues: 0,
+            notaMatematica: 0,
+            nivelPortugues: '',
+            nivelMatematica: '',
+            avaliado: false,
+            dataImportacao: new Date().toISOString(),
+            respostasPortugues: '',
+            respostasMatematica: '',
+            acertosPortugues: 0,
+            acertosMatematica: 0,
+            id: `aluno-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+          };
+
+          const result = await window.dataSdk.create(aluno);
+          if (result.isOk) importados++;
+        }
+
+        statusEl.innerHTML = `<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded font-semibold">✓ ${importados} alunos importados com sucesso!</div>`;
+        event.target.value = '';
+      } catch (error) {
+        statusEl.innerHTML = '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">Erro ao processar arquivo. Verifique o formato.</div>';
+      }
+    }
+
+    function renderAplicadores() {
+      const alunos = allData.filter(d => d.tipo === 'aluno');
+      const turmas = [...new Set(alunos.map(a => `${a.escola}|${a.turma}`))];
+      
+      const html = turmas.map(turmaKey => {
+        const [escola, turma] = turmaKey.split('|');
+        const alunosDaTurma = alunos.filter(a => a.escola === escola && a.turma === turma);
+        const aplicadorAtual = alunosDaTurma[0]?.aplicador || '';
+        
+        return `
+          <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <h3 class="font-semibold text-gray-900">${escola} - Turma ${turma}</h3>
+                <p class="text-sm text-gray-600">${alunosDaTurma.length} alunos</p>
+              </div>
+              <div class="flex-1 max-w-md ml-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Aplicador</label>
+                <input 
+                  type="text" 
+                  value="${aplicadorAtual}"
+                  onchange="setAplicador('${escola}', '${turma}', this.value)"
+                  placeholder="Nome do aplicador"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      document.getElementById('turmas-list').innerHTML = html || '<p class="text-gray-500 text-center py-8">Nenhum aluno importado ainda.</p>';
+    }
+
+    async function setAplicador(escola, turma, aplicador) {
+      const alunos = allData.filter(a => a.tipo === 'aluno' && a.escola === escola && a.turma === turma);
+      
+      for (const aluno of alunos) {
+        const updated = { ...aluno, aplicador };
+        await window.dataSdk.update(updated);
+      }
+    }
+
+    function renderAvaliacoes() {
+      updateFilters();
+      filterAlunos();
+    }
+
+    function updateFilters() {
+      const alunos = allData.filter(d => d.tipo === 'aluno');
+      const escolas = [...new Set(alunos.map(a => a.escola))].sort();
+      const turmas = [...new Set(alunos.map(a => a.turma))].sort();
+      
+      const escolaSelect = document.getElementById('filter-escola');
+      escolaSelect.innerHTML = '<option value="">Todas as escolas</option>' + 
+        escolas.map(e => `<option value="${e}">${e}</option>`).join('');
+      
+      const turmaSelect = document.getElementById('filter-turma');
+      turmaSelect.innerHTML = '<option value="">Todas as turmas</option>' + 
+        turmas.map(t => `<option value="${t}">${t}</option>`).join('');
+    }
+
+    function filterAlunos() {
+      const escolaFilter = document.getElementById('filter-escola').value;
+      const turmaFilter = document.getElementById('filter-turma').value;
+      const statusFilter = document.getElementById('filter-status').value;
+      
+      let alunos = allData.filter(d => d.tipo === 'aluno');
+      
+      if (escolaFilter) alunos = alunos.filter(a => a.escola === escolaFilter);
+      if (turmaFilter) alunos = alunos.filter(a => a.turma === turmaFilter);
+      if (statusFilter === 'pendente') alunos = alunos.filter(a => !a.avaliado);
+      if (statusFilter === 'avaliado') alunos = alunos.filter(a => a.avaliado);
+      
+      const html = alunos.map(aluno => `
+        <div class="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="font-semibold text-gray-900">${aluno.nome}</h3>
+              <p class="text-sm text-gray-600">${aluno.escola} - ${aluno.turma} (${aluno.ano}º ano)</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-medium ${aluno.avaliado ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+              ${aluno.avaliado ? '✓ Avaliado' : '⏳ Pendente'}
+            </span>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4 mb-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Nota Português (0-10)</label>
+              <input 
+                type="number" 
+                min="0" 
+                max="10" 
+                step="0.1"
+                value="${aluno.notaPortugues || 0}"
+                onchange="updateNota('${aluno.id}', 'portugues', this.value)"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Nota Matemática (0-10)</label>
+              <input 
+                type="number" 
+                min="0" 
+                max="10" 
+                step="0.1"
+                value="${aluno.notaMatematica || 0}"
+                onchange="updateNota('${aluno.id}', 'matematica', this.value)"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+          
+          ${!aluno.avaliado ? `
+            <button 
+              onclick="confirmarAvaliacao('${aluno.id}')"
+              class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              Confirmar Avaliação
+            </button>
+          ` : `
+            <div class="grid grid-cols-2 gap-4 text-center">
+              <div class="bg-purple-50 rounded p-2">
+                <div class="text-xs text-gray-600">Nível Português</div>
+                <div class="font-bold text-purple-700">${aluno.nivelPortugues}</div>
+              </div>
+              <div class="bg-orange-50 rounded p-2">
+                <div class="text-xs text-gray-600">Nível Matemática</div>
+                <div class="font-bold text-orange-700">${aluno.nivelMatematica}</div>
+              </div>
+            </div>
+          `}
+        </div>
+      `).join('');
+      
+      document.getElementById('alunos-list').innerHTML = html || '<p class="text-gray-500 text-center py-8">Nenhum aluno encontrado com os filtros selecionados.</p>';
+    }
+
+    async function updateNota(alunoId, disciplina, valor) {
+      const aluno = allData.find(a => a.id === alunoId);
+      if (!aluno) return;
+      
+      const nota = parseFloat(valor) || 0;
+      const updated = { ...aluno };
+      
+      if (disciplina === 'portugues') {
+        updated.notaPortugues = nota;
+      } else {
+        updated.notaMatematica = nota;
+      }
+      
+      await window.dataSdk.update(updated);
+    }
+
+    function calcularNivel(nota, ano) {
+      if (nota < 4) return 'Insuficiente';
+      if (nota < 6) return 'Básico';
+      if (nota < 8) return 'Adequado';
+      return 'Avançado';
+    }
+
+    async function confirmarAvaliacao(alunoId) {
+      const aluno = allData.find(a => a.id === alunoId);
+      if (!aluno) return;
+      
+      const updated = {
+        ...aluno,
+        avaliado: true,
+        nivelPortugues: calcularNivel(aluno.notaPortugues, aluno.ano),
+        nivelMatematica: calcularNivel(aluno.notaMatematica, aluno.ano)
+      };
+      
+      await window.dataSdk.update(updated);
+      filterAlunos();
+    }
+
+    function renderResultados() {
+      const alunos = allData.filter(d => d.tipo === 'aluno');
+      const avaliados = alunos.filter(a => a.avaliado);
+      
+      document.getElementById('stat-total').textContent = alunos.length;
+      document.getElementById('stat-avaliados').textContent = avaliados.length;
+      
+      if (avaliados.length > 0) {
+        const mediaPort = (avaliados.reduce((sum, a) => sum + a.notaPortugues, 0) / avaliados.length).toFixed(1);
+        const mediaMat = (avaliados.reduce((sum, a) => sum + a.notaMatematica, 0) / avaliados.length).toFixed(1);
+        document.getElementById('stat-media-port').textContent = mediaPort;
+        document.getElementById('stat-media-mat').textContent = mediaMat;
+      }
+      
+      renderCharts(avaliados);
+      renderEscolasResultados(avaliados);
+      renderTabelaDetalhada(avaliados);
+    }
+
+    function renderCharts(avaliados) {
+      const niveisPort = { 'Insuficiente': 0, 'Básico': 0, 'Adequado': 0, 'Avançado': 0 };
+      const niveisMat = { 'Insuficiente': 0, 'Básico': 0, 'Adequado': 0, 'Avançado': 0 };
+      
+      avaliados.forEach(a => {
+        niveisPort[a.nivelPortugues] = (niveisPort[a.nivelPortugues] || 0) + 1;
+        niveisMat[a.nivelMatematica] = (niveisMat[a.nivelMatematica] || 0) + 1;
+      });
+      
+      const chartConfig = {
+        type: 'bar',
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      };
+      
+      if (chartPortugues) chartPortugues.destroy();
+      chartPortugues = new Chart(document.getElementById('chart-portugues'), {
+        ...chartConfig,
+        data: {
+          labels: Object.keys(niveisPort),
+          datasets: [{
+            label: 'Alunos',
+            data: Object.values(niveisPort),
+            backgroundColor: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6']
+          }]
+        }
+      });
+      
+      if (chartMatematica) chartMatematica.destroy();
+      chartMatematica = new Chart(document.getElementById('chart-matematica'), {
+        ...chartConfig,
+        data: {
+          labels: Object.keys(niveisMat),
+          datasets: [{
+            label: 'Alunos',
+            data: Object.values(niveisMat),
+            backgroundColor: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6']
+          }]
+        }
+      });
+    }
+
+    function renderEscolasResultados(avaliados) {
+      const escolasMap = {};
+      
+      avaliados.forEach(a => {
+        if (!escolasMap[a.escola]) {
+          escolasMap[a.escola] = { total: 0, somaPort: 0, somaMat: 0 };
+        }
+        escolasMap[a.escola].total++;
+        escolasMap[a.escola].somaPort += a.notaPortugues;
+        escolasMap[a.escola].somaMat += a.notaMatematica;
+      });
+      
+      const html = Object.entries(escolasMap).map(([escola, dados]) => {
+        const mediaPort = (dados.somaPort / dados.total).toFixed(1);
+        const mediaMat = (dados.somaMat / dados.total).toFixed(1);
+        
+        return `
+          <div class="bg-white rounded-lg p-4 mb-3 shadow-sm">
+            <h4 class="font-semibold text-gray-900 mb-2">${escola}</h4>
+            <div class="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <span class="text-gray-600">Alunos avaliados:</span>
+                <span class="font-semibold ml-2">${dados.total}</span>
+              </div>
+              <div>
+                <span class="text-gray-600">Média Português:</span>
+                <span class="font-semibold ml-2 text-purple-600">${mediaPort}</span>
+              </div>
+              <div>
+                <span class="text-gray-600">Média Matemática:</span>
+                <span class="font-semibold ml-2 text-orange-600">${mediaMat}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      document.getElementById('escolas-resultados').innerHTML = html || '<p class="text-gray-500 text-center py-4">Nenhum dado disponível.</p>';
+    }
+
+    function renderTabelaDetalhada(avaliados) {
+      const html = avaliados.map(a => `
+        <tr>
+          <td class="px-4 py-3 text-sm text-gray-900">${a.nome}</td>
+          <td class="px-4 py-3 text-sm text-gray-600">${a.escola}</td>
+          <td class="px-4 py-3 text-sm text-gray-600">${a.turma}</td>
+          <td class="px-4 py-3 text-sm text-center">
+            <span class="font-semibold">${a.notaPortugues.toFixed(1)}</span>
+            <span class="block text-xs text-gray-500">${a.nivelPortugues}</span>
+          </td>
+          <td class="px-4 py-3 text-sm text-center">
+            <span class="font-semibold">${a.notaMatematica.toFixed(1)}</span>
+            <span class="block text-xs text-gray-500">${a.nivelMatematica}</span>
+          </td>
+          <td class="px-4 py-3 text-sm text-center">
+            <span class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Avaliado</span>
+          </td>
+        </tr>
+      `).join('');
+      
+      document.getElementById('tabela-resultados').innerHTML = html || '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">Nenhum aluno avaliado ainda.</td></tr>';
+    }
+
+    async function gerarPDF() {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const alunos = allData.filter(d => d.tipo === 'aluno');
+      const avaliados = alunos.filter(a => a.avaliado);
+      
+      pdf.setFontSize(18);
+      pdf.text('Relatório de Avaliação SAECAL', 105, 20, { align: 'center' });
+      
+      pdf.setFontSize(12);
+      pdf.text(`Total de alunos: ${alunos.length}`, 20, 40);
+      pdf.text(`Alunos avaliados: ${avaliados.length}`, 20, 50);
+      
+      if (avaliados.length > 0) {
+        const mediaPort = (avaliados.reduce((sum, a) => sum + a.notaPortugues, 0) / avaliados.length).toFixed(1);
+        const mediaMat = (avaliados.reduce((sum, a) => sum + a.notaMatematica, 0) / avaliados.length).toFixed(1);
+        
+        pdf.text(`Média Português: ${mediaPort}`, 20, 60);
+        pdf.text(`Média Matemática: ${mediaMat}`, 20, 70);
+        
+        pdf.setFontSize(14);
+        pdf.text('Alunos Avaliados:', 20, 90);
+        
+        let y = 100;
+        avaliados.forEach((a, i) => {
+          if (y > 270) {
+            pdf.addPage();
+            y = 20;
+          }
+          
+          pdf.setFontSize(10);
+          pdf.text(`${i + 1}. ${a.nome} - ${a.escola} - ${a.turma}`, 20, y);
+          pdf.text(`Port: ${a.notaPortugues.toFixed(1)} (${a.nivelPortugues}) | Mat: ${a.notaMatematica.toFixed(1)} (${a.nivelMatematica})`, 25, y + 5);
+          y += 15;
+        });
+      }
+      
+      pdf.save('relatorio-saecal.pdf');
+    }
+
+    function updateAllViews() {
+      const currentTab = document.querySelector('.nav-btn.border-indigo-600')?.dataset.tab;
+      if (currentTab === 'aplicadores') renderAplicadores();
+      if (currentTab === 'avaliacoes') renderAvaliacoes();
+      if (currentTab === 'resultados') renderResultados();
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9bb4e6a231f5f61f',t:'MTc2Nzk3MTg0MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
